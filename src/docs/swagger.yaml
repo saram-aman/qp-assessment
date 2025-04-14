@@ -1,0 +1,299 @@
+openapi: 3.0.0
+info:
+  title: Grocery Booking API
+  version: 1.0.0
+  description: API for grocery booking system with Admin and User roles
+
+servers:
+  - url: http://localhost:3000/api
+
+tags:
+  - name: Auth
+  - name: Grocery
+  - name: Orders
+
+paths:
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - role
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [ADMIN, USER]
+      responses:
+        '200':
+          description: User registered successfully
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: User logged in and token returned
+
+  /admin/groceries:
+    post:
+      tags: [Grocery]
+      summary: Add a new grocery item (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, price, inventory]
+              properties:
+                name:
+                  type: string
+                price:
+                  type: number
+                inventory:
+                  type: integer
+      responses:
+        '201':
+          description: Grocery item added
+
+    get:
+      tags: [Grocery]
+      summary: Get all grocery items
+      responses:
+        '200':
+          description: List of grocery items
+
+  /admin/groceries/{id}:
+    put:
+      tags: [Grocery]
+      summary: Update a grocery item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                price:
+                  type: number
+                inventory:
+                  type: integer
+      responses:
+        '200':
+          description: Grocery item updated
+
+    delete:
+      tags: [Grocery]
+      summary: Delete a grocery item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Grocery item deleted
+    
+  /admin/groceries/{id}/inventory:
+    patch:
+      summary: Update grocery item inventory
+      tags:
+        - Grocery
+      parameters:
+        - name: id
+          in: path
+          description: ID of the grocery item
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - inventory
+              properties:
+                inventory:
+                  type: integer
+                  example: 25
+      responses:
+        '200':
+          description: Inventory updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Inventory updated successfully
+                  item:
+                    $ref: '#/components/schemas/GroceryItem'
+        '400':
+          description: Validation or bad request error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid inventory value
+        '404':
+          description: Grocery item not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Grocery item not found
+        '500':
+          description: Server error
+
+
+  /user/orders:
+    post:
+      tags: [Orders]
+      summary: Book multiple grocery items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [itemId, quantity]
+                    properties:
+                      itemId:
+                        type: integer
+                      quantity:
+                        type: integer
+      responses:
+        '200':
+          description: Order placed successfully
+    get:
+      tags: [Orders]
+      summary: View all orders by the logged-in user
+      responses:
+        '200':
+          description: List of user orders
+
+  /user/groceries:
+    get:
+      tags: [Orders]
+      summary: List groceries with optional filters
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter groceries by name
+        - name: priceMin
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Filter groceries with a minimum price
+        - name: priceMax
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Filter groceries with a maximum price
+      responses:
+        '200':
+          description: List of groceries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    price:
+                      type: number
+                    inventory:
+                      type: integer
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    GroceryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Milk
+        price:
+          type: number
+          format: float
+          example: 3.5
+        inventory:
+          type: integer
+          example: 25
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+
+security:
+  - bearerAuth: []
